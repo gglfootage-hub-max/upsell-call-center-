@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ทีมโทรอัพเซลล์</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📞</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF2EF; --surface:#FFFFFF; --ink:#15222C; --ink-2:#44535E; --ink-3:#7C8A94;
+  --line:#D6DDD8; --navy:#1E3A5F;
+  --green:#1F8A5B; --green-bg:#E1F2E8;
+  --amber:#B8741A; --amber-bg:#FBEEDB;
+  --red:#C2413A; --red-bg:#F8E3E1;
+  --blue:#2F6DB5; --blue-bg:#E2ECF8;
+  --grey:#6B7A86; --grey-bg:#E9EDF0;
+  --radius-s:6px; --radius-m:10px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Anuphan","Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif;font-size:15px;line-height:1.55}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.hidden{display:none!important}
+
+/* Top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+.brand small{font-weight:400;opacity:.7;font-size:13px}
+.tabs{display:flex;gap:4px;flex:1;overflow-x:auto}
+.tab{background:none;border:0;color:#fff;opacity:.72;padding:8px 14px;border-radius:var(--radius-s);white-space:nowrap}
+.tab:hover{opacity:1;background:rgba(255,255,255,.08)}
+.tab[aria-selected="true"]{opacity:1;background:rgba(255,255,255,.16);font-weight:600}
+.me{display:flex;align-items:center;gap:8px;font-size:14px}
+.me select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--radius-s);padding:5px 8px}
+.me select option{color:var(--ink)}
+
+main{max-width:1320px;margin:0 auto;padding:20px}
+
+/* Sync strip */
+.sync{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:10px 14px;margin-bottom:16px;font-size:14px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.sync .grow{flex:1;color:var(--ink-2)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-s);padding:7px 14px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.primary:hover{background:#15304F}
+
+/* Queue layout */
+.workspace{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m)}
+.queue-head{padding:14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.queue-head h2{margin:0;font-size:16px}
+.search{width:100%;border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;background:var(--paper)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 11px;font-size:13px;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip .n{opacity:.65;margin-left:3px}
+.qlist{list-style:none;margin:0;padding:0;max-height:calc(100vh - 290px);overflow-y:auto}
+.qitem{display:grid;grid-template-columns:4px 1fr auto;gap:0 12px;padding:11px 14px 11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.qitem:hover{background:#F6F8F7}
+.qitem[aria-current="true"]{background:#EDF2F8}
+.qitem .bar{grid-row:1/3;border-radius:0 3px 3px 0}
+.qitem .nm{font-weight:600}
+.qitem .sub{grid-column:2;font-size:13px;color:var(--ink-3)}
+.qitem .when{font-size:12px;color:var(--ink-3);text-align:right}
+.due{color:var(--amber);font-weight:600}
+.empty{padding:40px 20px;text-align:center;color:var(--ink-3)}
+
+/* Status pill */
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.src{display:inline-block;font-size:12px;padding:1px 7px;border-radius:4px;background:var(--grey-bg);color:var(--ink-2);margin-right:4px}
+
+/* Detail */
+.detail{padding:22px 24px}
+.d-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.d-name{font-size:22px;font-weight:700;margin:0 0 4px}
+.d-meta{color:var(--ink-3);font-size:14px}
+.phone{display:flex;align-items:center;gap:14px;margin:18px 0 20px;flex-wrap:wrap}
+.phone .num{font-size:32px;font-weight:700;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.callbtn{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600}
+.callbtn:hover{background:#18744C}
+.copybtn{background:none;border:0;color:var(--blue);text-decoration:underline;padding:4px}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden;margin-bottom:22px}
+.info div{background:var(--surface);padding:10px 12px}
+.info dt{font-size:12px;color:var(--ink-3)}
+.info dd{margin:0;font-weight:600}
+
+.sec-title{font-size:14px;font-weight:600;margin:0 0 8px;color:var(--ink-2)}
+.statusbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-bottom:14px}
+.sbtn{border:1.5px solid var(--line);background:var(--surface);border-radius:var(--radius-m);padding:12px 8px;font-weight:600;text-align:center;transition:transform .08s}
+.sbtn:active{transform:scale(.97)}
+.sbtn .k{display:block;font-size:11px;font-weight:400;color:var(--ink-3);margin-top:2px}
+.sbtn[aria-pressed="true"]{color:#fff}
+.extra{background:var(--paper);border-radius:var(--radius-m);padding:14px;margin-bottom:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.extra label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-2)}
+.extra input{border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;background:#fff;min-width:180px}
+textarea{width:100%;min-height:74px;border:1px solid var(--line);border-radius:var(--radius-s);padding:10px;resize:vertical}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin:12px 0 24px;flex-wrap:wrap}
+.hist{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line)}
+.hist li{position:relative;padding:0 0 12px 12px;font-size:14px}
+.hist li::before{content:"";position:absolute;left:-20px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--ink-3)}
+.hist .t{color:var(--ink-3);font-size:12px}
+.back{display:none}
+
+/* Dashboard */
+.dash-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.dash-head h2{margin:0;font-size:20px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:7px 14px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.funnel{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);margin-bottom:16px}
+.funnel div{padding:16px 18px;border-right:1px solid var(--line)}
+.funnel div:last-child{border-right:0}
+.funnel .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.funnel .l{font-size:13px;color:var(--ink-3)}
+.funnel .money .v{color:var(--green)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{padding:18px}
+.card h3{margin:0 0 14px;font-size:15px}
+.hbar{display:grid;grid-template-columns:90px 1fr 44px;gap:10px;align-items:center;margin-bottom:9px;font-size:14px}
+.hbar .track{height:14px;background:var(--grey-bg);border-radius:3px;overflow:hidden}
+.hbar .fill{height:100%;background:var(--navy);border-radius:3px}
+.hbar .c{text-align:right;font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--ink-2);font-size:13px}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#F6F8F7}
+
+/* All leads */
+.filters{display:flex;gap:10px;flex-wrap:wrap;padding:14px;border-bottom:1px solid var(--line)}
+.filters select,.filters input{border:1px solid var(--line);border-radius:var(--radius-s);padding:7px 10px;background:var(--surface)}
+.linkbtn{background:none;border:0;color:var(--blue);padding:0;text-decoration:underline}
+
+/* Settings */
+.settings{display:grid;gap:16px;max-width:820px}
+.settings .card p{color:var(--ink-2);margin:0 0 12px}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;font-size:14px}
+.field input,.field select{border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px}
+.hint{font-size:13px;color:var(--ink-3)}
+.staff-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.staff-row span{flex:1}
+code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:13px;word-break:break-all}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:var(--radius-m);font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:50;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:900px){
+  .grid2{grid-template-columns:1fr}
+  .funnel{grid-template-columns:repeat(2,1fr)}
+  .funnel div{border-bottom:1px solid var(--line)}
+  .funnel .money{grid-column:1/-1;border-bottom:0}
+}
+@media (max-width:760px){
+  main{padding:12px}
+  .top{padding:10px 12px;gap:8px}
+  .workspace{grid-template-columns:1fr}
+  .qlist{max-height:none}
+  .workspace.has-detail .queue{display:none}
+  .workspace:not(.has-detail) .detail-panel{display:none}
+  .back{display:inline-block;margin-bottom:12px}
+  .phone .num{font-size:26px}
+  .detail{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">📞 ทีมโทรอัพเซลล์ <small>ตัวอย่าง</small></div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="queue" aria-selected="true">คิวโทรของฉัน</button>
+    <button class="tab" role="tab" data-view="dash" aria-selected="false">สรุปผล</button>
+    <button class="tab" role="tab" data-view="all" aria-selected="false">รายชื่อทั้งหมด</button>
+    <button class="tab" role="tab" data-view="settings" aria-selected="false">ตั้งค่า</button>
+  </nav>
+  <label class="me">ใช้งานในชื่อ <select id="meSel"></select></label>
+</header>
+
+<main>
+  <div class="sync">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="grow" id="syncText">เชื่อมต่อ Pancake แล้ว</span>
+    <button class="btn primary" id="pullBtn">ดึงรายชื่อใหม่จาก Pancake</button>
+  </div>
+
+  <!-- QUEUE -->
+  <section id="view-queue">
+    <div class="workspace" id="workspace">
+      <div class="panel queue">
+        <div class="queue-head">
+          <h2 id="queueTitle">คิวโทร</h2>
+          <input class="search" id="qSearch" type="search" placeholder="ค้นหาชื่อ เบอร์ หรือเลขออเดอร์">
+          <div class="chips" id="qChips"></div>
+        </div>
+        <ul class="qlist" id="qList"></ul>
+      </div>
+      <div class="panel detail-panel" id="detailPanel"></div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="view-dash" class="hidden">
+    <div class="dash-head">
+      <h2>สรุปผลทีมอัพเซลล์</h2>
+      <div class="seg" id="rangeSeg">
+        <button data-r="today">วันนี้</button>
+        <button data-r="7d">7 วัน</button>
+        <button data-r="all">ทั้งหมด</button>
+      </div>
+    </div>
+    <div class="funnel" id="funnel"></div>
+    <div class="grid2">
+      <div class="panel card"><h3>รายชื่อแยกตามช่องทาง</h3><div id="bySource"></div></div>
+      <div class="panel card"><h3>สถานะรายชื่อ</h3><div id="byStatus"></div></div>
+    </div>
+    <div class="panel card" style="margin-top:16px">
+      <h3>ผลงานรายคน</h3>
+      <div class="tbl-wrap"><table id="staffTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- ALL LEADS -->
+  <section id="view-all" class="hidden">
+    <div class="panel">
+      <div class="filters">
+        <input type="search" id="aSearch" placeholder="ค้นหา">
+        <select id="aStatus"></select>
+        <select id="aStaff"></select>
+        <select id="aSource"></select>
+        <button class="btn" id="csvBtn">ดาวน์โหลด CSV</button>
+      </div>
+      <div class="tbl-wrap"><table id="allTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="hidden">
+    <div class="settings">
+      <div class="panel card">
+        <h3>การเชื่อมต่อ Pancake</h3>
+        <p>ในเวอร์ชันจริง ค่าเหล่านี้จะเก็บไว้ที่ Google Apps Script ไม่ใช่บนหน้าเว็บ เพื่อไม่ให้ API key หลุด ตอนนี้เป็นตัวอย่างหน้าตาเท่านั้น</p>
+        <label class="field">Shop ID (Pancake POS)<input placeholder="เช่น 123456789"></label>
+        <label class="field">Page ID (Pancake แชท)<input placeholder="เช่น 1029384756"></label>
+        <label class="field">Webhook URL ที่ต้องใส่ใน Pancake<input readonly value="https://script.google.com/macros/s/xxxx/exec"></label>
+        <label class="field">ดึงรายชื่อจาก
+          <select><option>ออเดอร์ POS + แชทที่มีเบอร์โทร</option><option>เฉพาะออเดอร์ POS</option><option>เฉพาะแชท</option></select>
+        </label>
+        <p class="hint">รายชื่อที่เบอร์ซ้ำภายใน 30 วันจะถูกข้ามอัตโนมัติ</p>
+      </div>
+      <div class="panel card">
+        <h3>การแจกรายชื่อ</h3>
+        <label class="field">วิธีแจก
+          <select id="assignMode">
+            <option value="balance">แจกให้คนที่มีงานค้างน้อยที่สุด</option>
+            <option value="round">วนตามลำดับ</option>
+            <option value="manual">หัวหน้าทีมแจกเอง</option>
+          </select>
+        </label>
+        <h3 style="margin-top:18px">พนักงาน</h3>
+        <div id="staffList"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input id="newStaff" class="search" placeholder="ชื่อพนักงานใหม่" style="flex:1">
+          <button class="btn" id="addStaff">เพิ่ม</button>
+        </div>
+      </div>
+      <div class="panel card">
+        <h3>ข้อมูลตัวอย่าง</h3>
+        <p>ข้อมูลในหน้านี้เป็นรายชื่อสมมติ และเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น</p>
+        <button class="btn" id="resetBtn">ล้างข้อมูลและสร้างตัวอย่างใหม่</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Config ---------- */
+const STATUS = {
+  new:      {label:'ยังไม่โทร',     key:'',  c:'var(--grey)',  bg:'var(--grey-bg)'},
+  no_answer:{label:'ไม่รับสาย',     key:'1', c:'var(--red)',   bg:'var(--red-bg)'},
+  callback: {label:'นัดโทรกลับ',    key:'2', c:'var(--amber)', bg:'var(--amber-bg)'},
+  talked:   {label:'ได้คุย ยังไม่ซื้อ',key:'3', c:'var(--blue)',  bg:'var(--blue-bg)'},
+  sold:     {label:'ขายได้',        key:'4', c:'var(--green)', bg:'var(--green-bg)'},
+  rejected: {label:'ไม่สนใจ',       key:'5', c:'#56626B',      bg:'var(--grey-bg)'},
+  wrong:    {label:'เบอร์ผิด',       key:'6', c:'#8B2F2A',      bg:'var(--red-bg)'}
+};
+const TALKED = ['talked','sold','rejected'];      // นับเป็น "ได้คุย"
+const CLOSED = ['sold','rejected','wrong'];       // ไม่อยู่ในคิวแล้ว
+const SOURCES = ['FB','Incall','Shopee','Lazada','LineAd','TikTok'];
+const STORE_KEY = 'upsell-demo-v1';
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const baht = n => '฿' + Math.round(n||0).toLocaleString('th-TH');
+const pct = (a,b) => b ? (a/b*100).toFixed(1)+'%' : '–';
+const fmtPhone = p => p.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+const DAY = 864e5;
+function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+function fmtTime(ts){
+  const d = new Date(ts), t = d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  if (ts >= startOfToday()) return 'วันนี้ ' + t;
+  if (ts >= startOfToday()-DAY) return 'เมื่อวาน ' + t;
+  return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'}) + ' ' + t;
+}
+function pill(st){ const s=STATUS[st]; return `<span class="pill" style="color:${s.c};background:${s.bg}">${s.label}</span>`; }
+
+/* seeded random so demo looks the same each reset */
+let seed = 7;
+const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+const pick = a => a[Math.floor(rnd()*a.length)];
+
+const FIRST = ['สมศรี','วิภา','กิตติ','ณัฐพล','ปวีณา','อรทัย','ธนพร','ศิริพร','ชัยวัฒน์','พิมพ์ชนก','สุนิสา','อนุชา','จิราพร','เบญจวรรณ','ประภาส','รัตนา','วรวุฒิ','กัญญา','ธีรพงษ์','มาลัย','นภัสสร','สุดารัตน์','ภานุวัฒน์','ลำดวน'];
+const LAST  = ['ใจดี','ทองคำ','ศรีสุข','วงศ์ใหญ่','แก้วมณี','บุญมา','สายทอง','รุ่งเรือง','พึ่งบุญ','มั่นคง','เพชรงาม','สมบูรณ์'];
+const PRODUCTS = [['เซรั่มหน้าใส 30ml',590],['ครีมกันแดด SPF50',390],['คอลลาเจนผง 1 กระปุก',890],['สบู่สมุนไพร แพ็ก 3',250],['ชุดทดลอง 7 วัน',199],['วิตามินซี 60 เม็ด',450]];
+const UPSELL_AMT = [390,450,590,690,790,890,990,1180,1290,1580,1780];
+
+function makeLead(ts, staff, origin){
+  const [prod, price] = pick(PRODUCTS);
+  const src = rnd()<.78 ? 'FB' : pick(SOURCES);
+  const o = origin || (rnd()<.7 ? 'POS' : 'แชท');
+  return {
+    id: 'L' + Math.floor(ts/1000).toString(36) + Math.floor(rnd()*1e4),
+    name: pick(FIRST)+' '+pick(LAST),
+    phone: '0' + pick(['8','9','6']) + String(Math.floor(rnd()*1e8)).padStart(8,'0'),
+    source: src, origin: o,
+    orderNo: o==='POS' ? 'PK' + Math.floor(100000+rnd()*900000) : '',
+    product: prod, orderAmt: price * (1+Math.floor(rnd()*2)),
+    createdAt: ts, assignee: staff, status:'new', attempts:0,
+    callbackAt:null, upsell:0, note:'', history:[{t:ts, text:`รับรายชื่อจาก Pancake ${o} (${src})`}]
+  };
+}
+
+function seedData(){
+  seed = 7;
+  const staff = ['แอน','บีม','ฝน','มิ้นท์','เจ','ต้น'];
+  const leads = [];
+  const now = Date.now();
+  for (let d=6; d>=0; d--){
+    const n = d===0 ? 26 : 50 + Math.floor(rnd()*40);
+    for (let i=0;i<n;i++){
+      const ts = startOfToday() - d*DAY + (8*3600e3) + rnd()*(d===0 ? Math.max(1,(now-startOfToday()-8*3600e3)) : 12*3600e3);
+      const L = makeLead(Math.min(ts, now-60e3), staff[i % staff.length]);
+      // past days: mostly processed
+      const r = rnd();
+      const doneChance = d===0 ? .45 : .95;
+      if (r < doneChance){
+        const outcome = rnd();
+        let st = outcome<.24?'no_answer':outcome<.30?'callback':outcome<.52?'talked':outcome<.80?'sold':outcome<.95?'rejected':'wrong';
+        L.status = st; L.attempts = 1 + (st==='no_answer'?Math.floor(rnd()*2):0);
+        const tAct = L.createdAt + (20+rnd()*300)*60e3;
+        if (st==='sold'){ L.upsell = pick(UPSELL_AMT); L.note = pick(['รับเพิ่มอีก 1 ชุด','อัพเป็นชุดใหญ่','เพิ่มครีมกันแดด','ซื้อเผื่อแม่']); }
+        if (st==='callback'){ L.callbackAt = now + (rnd()*6-2)*3600e3; L.note='ลูกค้าขอให้โทรช่วงเย็น'; }
+        if (st==='rejected') L.note = pick(['ยังใช้ของเดิมไม่หมด','งบไม่พอ','ขอดูก่อน']);
+        L.history.push({t:Math.min(tAct,now), text:`${L.assignee}: ${STATUS[st].label}${L.upsell?' '+baht(L.upsell):''}`});
+      }
+      leads.push(L);
+    }
+  }
+  return { staff, leads, me:'แอน', assignMode:'balance', rr:0, lastSync:now };
+}
+
+/* ---------- State ---------- */
+let S;
+function load(){
+  try { const raw = localStorage.getItem(STORE_KEY); if (raw) { S = JSON.parse(raw); return; } } catch(e){}
+  S = seedData();
+}
+function save(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch(e){} }
+load();
+
+let ui = { view:'queue', selected:null, qFilter:'todo', qSearch:'', range:'today' };
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- Views ---------- */
+function setView(v){
+  ui.view = v;
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.view===v));
+  ['queue','dash','all','settings'].forEach(x => $('#view-'+x).classList.toggle('hidden', x!==v));
+  render();
+}
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => setView(b.dataset.view));
+
+function render(){
+  renderMe(); renderSync();
+  if (ui.view==='queue') renderQueue();
+  if (ui.view==='dash') renderDash();
+  if (ui.view==='all') renderAll();
+  if (ui.view==='settings') renderSettings();
+}
+
+function renderMe(){
+  const sel = $('#meSel');
+  sel.innerHTML = ['หัวหน้าทีม',...S.staff].map(n => `<option ${n===S.me?'selected':''}>${esc(n)}</option>`).join('');
+}
+$('#meSel').onchange = e => { S.me = e.target.value; ui.selected=null; save(); render(); };
+
+function renderSync(){
+  $('#syncText').textContent = `เชื่อมต่อ Pancake แล้ว · ซิงก์ล่าสุด ${fmtTime(S.lastSync)} · ระบบจริงจะดึงให้เองทุก 5 นาที`;
+}
+
+/* ----- Queue ----- */
+function myLeads(){ return S.me==='หัวหน้าทีม' ? S.leads : S.leads.filter(l => l.assignee===S.me); }
+function isDue(l){ return l.status==='callback' && l.callbackAt && l.callbackAt <= Date.now(); }
+function queueOrder(l){
+  if (isDue(l)) return 0;
+  if (l.status==='new') return 1;
+  if (l.status==='no_answer' && l.attempts<3) return 2;
+  if (l.status==='callback') return 3;
+  return 4;
+}
+const QF = {
+  todo:   {label:'ต้องโทร',    f:l => !CLOSED.includes(l.status) && l.status!=='talked'},
+  new:    {label:'ยังไม่โทร',   f:l => l.status==='new'},
+  callback:{label:'นัดโทรกลับ', f:l => l.status==='callback'},
+  no_answer:{label:'ไม่รับสาย', f:l => l.status==='no_answer'},
+  done:   {label:'ปิดแล้ว',    f:l => CLOSED.includes(l.status) || l.status==='talked'}
+};
+
+function renderQueue(){
+  const mine = myLeads();
+  $('#queueTitle').textContent = S.me==='หัวหน้าทีม' ? 'คิวโทรทั้งทีม' : `คิวโทรของ${S.me}`;
+  $('#qChips').innerHTML = Object.entries(QF).map(([k,v]) =>
+    `<button class="chip" data-f="${k}" aria-pressed="${ui.qFilter===k}">${v.label}<span class="n">${mine.filter(v.f).length}</span></button>`).join('');
+  $('#qChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { ui.qFilter=b.dataset.f; renderQueue(); });
+
+  const q = ui.qSearch.trim().toLowerCase();
+  let list = mine.filter(QF[ui.qFilter].f).filter(l => !q || (l.name+l.phone+l.orderNo).toLowerCase().includes(q));
+  list.sort((a,b) => ui.qFilter==='done' ? b.createdAt-a.createdAt : (queueOrder(a)-queueOrder(b)) || (a.createdAt-b.createdAt));
+
+  $('#qList').innerHTML = list.length ? list.slice(0,200).map(l => {
+    const s = STATUS[l.status];
+    const when = isDue(l) ? `<span class="due">ถึงเวลาโทร</span>` :
+      l.status==='callback' ? `นัด ${fmtTime(l.callbackAt)}` : fmtTime(l.createdAt);
+    return `<li class="qitem" data-id="${l.id}" tabindex="0" aria-current="${ui.selected===l.id}">
+      <span class="bar" style="background:${s.c}"></span>
+      <span class="nm">${esc(l.name)}</span>
+      <span class="when">${when}</span>
+      <span class="sub"><span class="src">${l.source}</span>${esc(l.product)}${S.me==='หัวหน้าทีม'?' · '+esc(l.assignee):''}${l.attempts>1?` · โทรแล้ว ${l.attempts} ครั้ง`:''}</span>
+    </li>`;}).join('')
+    : `<li class="empty">${ui.qFilter==='todo' ? 'โทรครบทุกรายชื่อแล้ว กด "ดึงรายชื่อใหม่จาก Pancake" เพื่อรับรายชื่อเพิ่ม' : 'ไม่มีรายชื่อในกลุ่มนี้'}</li>`;
+
+  $('#qList').querySelectorAll('.qitem').forEach(li => {
+    li.onclick = () => select(li.dataset.id);
+    li.onkeydown = e => { if (e.key==='Enter') select(li.dataset.id); };
+  });
+
+  if (!ui.selected && list.length && window.innerWidth>760) ui.selected = list[0].id;
+  renderDetail();
+}
+$('#qSearch').oninput = e => { ui.qSearch = e.target.value; renderQueue(); };
+
+function select(id){ ui.selected=id; renderQueue(); if (window.innerWidth<=760) window.scrollTo(0,0); }
+
+let draft = {};
+function renderDetail(){
+  const ws = $('#workspace'), p = $('#detailPanel');
+  const l = S.leads.find(x => x.id===ui.selected);
+  ws.classList.toggle('has-detail', !!l);
+  if (!l){ p.innerHTML = `<div class="empty">เลือกรายชื่อทางซ้ายเพื่อเริ่มโทร</div>`; return; }
+  if (draft.id !== l.id) draft = { id:l.id, status:l.status, upsell:l.upsell||'', callbackAt:l.callbackAt, note:'' };
+
+  const cbVal = draft.callbackAt ? new Date(draft.callbackAt - new Date().getTimezoneOffset()*60e3).toISOString().slice(0,16) : '';
+  p.innerHTML = `<div class="detail">
+    <button class="btn back" id="backBtn">กลับไปที่คิว</button>
+    <div class="d-top">
+      <div>
+        <h2 class="d-name">${esc(l.name)}</h2>
+        <div class="d-meta">เข้ามา ${fmtTime(l.createdAt)} · ผู้รับผิดชอบ ${esc(l.assignee)}</div>
+      </div>
+      ${pill(l.status)}
+    </div>
+    <div class="phone">
+      <span class="num">${fmtPhone(l.phone)}</span>
+      <a class="callbtn" href="tel:${l.phone}" id="callLink">📞 โทรออก</a>
+      <button class="copybtn" id="copyBtn">คัดลอกเบอร์</button>
+    </div>
+    <dl class="info">
+      <div><dt>ช่องทาง</dt><dd>${l.source} · ${l.origin}</dd></div>
+      <div><dt>เลขออเดอร์</dt><dd>${l.orderNo || '–'}</dd></div>
+      <div><dt>สินค้าที่ซื้อ</dt><dd>${esc(l.product)}</dd></div>
+      <div><dt>ยอดออเดอร์เดิม</dt><dd>${baht(l.orderAmt)}</dd></div>
+      <div><dt>โทรไปแล้ว</dt><dd>${l.attempts} ครั้ง</dd></div>
+    </dl>
+
+    <p class="sec-title">ผลการโทร <span class="hint">(กดปุ่มตัวเลข 1–6 บนคีย์บอร์ดได้)</span></p>
+    <div class="statusbar">
+      ${Object.entries(STATUS).filter(([k])=>k!=='new').map(([k,s]) =>
+        `<button class="sbtn" data-s="${k}" aria-pressed="${draft.status===k}" style="${draft.status===k?`background:${s.c};border-color:${s.c}`:`border-color:${s.bg}`}">${s.label}<span class="k" style="${draft.status===k?'color:#fff;opacity:.8':''}">${s.key}</span></button>`).join('')}
+    </div>
+
+    ${draft.status==='sold' ? `<div class="extra"><label>ยอดอัพเซลล์ (บาท)<input type="number" min="0" step="10" id="upsellIn" value="${draft.upsell}" placeholder="เช่น 590"></label></div>` : ''}
+    ${draft.status==='callback' ? `<div class="extra"><label>โทรกลับวันเวลา<input type="datetime-local" id="cbIn" value="${cbVal}"></label>
+      <button class="btn" data-q="60">อีก 1 ชม.</button><button class="btn" data-q="tonight">เย็นนี้ 18:00</button><button class="btn" data-q="tomorrow">พรุ่งนี้ 10:00</button></div>` : ''}
+
+    <textarea id="noteIn" placeholder="บันทึกสิ่งที่คุยกับลูกค้า">${esc(draft.note)}</textarea>
+    <div class="actions">
+      <button class="btn" id="skipBtn">ข้ามไปรายชื่อถัดไป</button>
+      <button class="btn primary" id="saveBtn">บันทึกผลการโทร</button>
+    </div>
+
+    <p class="sec-title">ประวัติ</p>
+    <ul class="hist">${[...l.history].reverse().map(h => `<li><div>${esc(h.text)}</div><div class="t">${fmtTime(h.t)}</div></li>`).join('')}</ul>
+  </div>`;
+
+  p.querySelectorAll('.sbtn').forEach(b => b.onclick = () => { draft.note = $('#noteIn').value; draft.status = b.dataset.s; renderDetail(); });
+  const up = $('#upsellIn'); if (up){ up.oninput = e => draft.upsell = e.target.value; up.focus(); }
+  const cb = $('#cbIn'); if (cb) cb.onchange = e => draft.callbackAt = e.target.value ? new Date(e.target.value).getTime() : null;
+  p.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+    const d = new Date();
+    if (b.dataset.q==='60') d.setTime(d.getTime()+3600e3);
+    if (b.dataset.q==='tonight') d.setHours(18,0,0,0);
+    if (b.dataset.q==='tomorrow'){ d.setDate(d.getDate()+1); d.setHours(10,0,0,0); }
+    draft.note = $('#noteIn').value; draft.callbackAt = d.getTime(); renderDetail();
+  });
+  $('#noteIn').oninput = e => draft.note = e.target.value;
+  $('#saveBtn').onclick = saveResult;
+  $('#skipBtn').onclick = nextLead;
+  $('#backBtn').onclick = () => { ui.selected=null; renderQueue(); };
+  $('#copyBtn').onclick = () => { navigator.clipboard?.writeText(l.phone).then(()=>toast('คัดลอกเบอร์แล้ว'), ()=>toast(l.phone)); };
+}
+
+function saveResult(){
+  const l = S.leads.find(x => x.id===ui.selected);
+  if (!l) return;
+  if (draft.status==='new'){ toast('เลือกผลการโทรก่อนบันทึก'); return; }
+  if (draft.status==='sold' && !(+draft.upsell>0)){ toast('ใส่ยอดอัพเซลล์ก่อนบันทึก'); $('#upsellIn')?.focus(); return; }
+  if (draft.status==='callback' && !draft.callbackAt){ toast('เลือกวันเวลาที่จะโทรกลับ'); return; }
+  l.attempts += 1;
+  l.status = draft.status;
+  l.upsell = draft.status==='sold' ? +draft.upsell : 0;
+  l.callbackAt = draft.status==='callback' ? draft.callbackAt : null;
+  const who = S.me==='หัวหน้าทีม' ? 'หัวหน้าทีม' : S.me;
+  let txt = `${who}: ${STATUS[l.status].label}`;
+  if (l.status==='sold') txt += ' ' + baht(l.upsell);
+  if (l.status==='callback') txt += ' → ' + fmtTime(l.callbackAt);
+  if (draft.note.trim()) { txt += ' · ' + draft.note.trim(); l.note = draft.note.trim(); }
+  l.history.push({t:Date.now(), text:txt});
+  save();
+  toast(`บันทึกแล้ว: ${l.name} ${STATUS[l.status].label}`);
+  nextLead();
+}
+function nextLead(){
+  const list = myLeads().filter(QF.todo.f).filter(l => l.id!==ui.selected)
+    .sort((a,b)=>(queueOrder(a)-queueOrder(b))||(a.createdAt-b.createdAt));
+  ui.selected = list[0]?.id || null; draft = {};
+  renderQueue();
+}
+
+document.addEventListener('keydown', e => {
+  if (ui.view!=='queue' || !ui.selected) return;
+  if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+  const k = Object.entries(STATUS).find(([,s]) => s.key===e.key);
+  if (k){ draft.note = $('#noteIn')?.value || ''; draft.status = k[0]; renderDetail(); }
+});
+
+/* ----- Pull from Pancake (simulated) ----- */
+$('#pullBtn').onclick = () => {
+  const n = 2 + Math.floor(Math.random()*4);
+  let added = 0, dup = 0;
+  for (let i=0;i<n;i++){
+    seed = Math.floor(Math.random()*2147483646)+1;
+    let assignee = pickAssignee();
+    const L = makeLead(Date.now() - i*40e3, assignee);
+    if (i===n-1 && Math.random()<.5){ L.phone = S.leads[Math.floor(Math.random()*S.leads.length)].phone; }
+    const exists = S.leads.some(x => x.phone===L.phone && Date.now()-x.createdAt < 30*DAY);
+    if (exists){ dup++; continue; }
+    if (S.assignMode==='manual') L.assignee = 'ยังไม่แจก';
+    S.leads.push(L); added++;
+  }
+  S.lastSync = Date.now(); save();
+  toast(`รับรายชื่อใหม่ ${added} รายชื่อ${dup?` (เบอร์ซ้ำ ${dup} ข้ามไป)`:''}`);
+  render();
+};
+function pickAssignee(){
+  if (S.assignMode==='round'){ const a = S.staff[S.rr % S.staff.length]; S.rr++; return a; }
+  const open = s => S.leads.filter(l => l.assignee===s && QF.todo.f(l)).length;
+  return [...S.staff].sort((a,b)=>open(a)-open(b))[0];
+}
+
+/* ----- Dashboard ----- */
+function inRange(l){
+  if (ui.range==='today') return l.createdAt >= startOfToday();
+  if (ui.range==='7d') return l.createdAt >= startOfToday()-6*DAY;
+  return true;
+}
+function stats(list){
+  const talked = list.filter(l => TALKED.includes(l.status)).length;
+  const sold = list.filter(l => l.status==='sold');
+  return { total:list.length, talked, sold:sold.length, upsell:sold.reduce((s,l)=>s+l.upsell,0) };
+}
+function renderDash(){
+  document.querySelectorAll('#rangeSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.r===ui.range));
+  const list = S.leads.filter(inRange);
+  const st = stats(list);
+  $('#funnel').innerHTML = `
+    <div><div class="v">${st.total}</div><div class="l">รายชื่อรวม</div></div>
+    <div><div class="v">${st.talked}</div><div class="l">ได้คุย</div></div>
+    <div><div class="v">${st.sold}</div><div class="l">ขายได้</div></div>
+    <div><div class="v">${pct(st.sold,st.talked)}</div><div class="l">%ปิดการขาย · ปิดจากชื่อ ${pct(st.sold,st.total)}</div></div>
+    <div class="money"><div class="v">${baht(st.upsell)}</div><div class="l">ยอดขายเพิ่ม</div></div>`;
+
+  const bySrc = SOURCES.map(s => [s, list.filter(l=>l.source===s).length]);
+  const maxS = Math.max(1,...bySrc.map(x=>x[1]));
+  $('#bySource').innerHTML = bySrc.map(([s,n]) => `<div class="hbar"><span>${s}</span><span class="track"><span class="fill" style="display:block;width:${n/maxS*100}%"></span></span><span class="c">${n}</span></div>`).join('');
+
+  const bySt = Object.keys(STATUS).map(k => [k, list.filter(l=>l.status===k).length]);
+  const maxT = Math.max(1,...bySt.map(x=>x[1]));
+  $('#byStatus').innerHTML = bySt.map(([k,n]) => `<div class="hbar"><span>${STATUS[k].label}</span><span class="track"><span class="fill" style="display:block;width:${n/maxT*100}%;background:${STATUS[k].c}"></span></span><span class="c">${n}</span></div>`).join('');
+
+  const rows = S.staff.map(s => { const my = list.filter(l=>l.assignee===s); const x = stats(my);
+    return {s, ...x, left: my.filter(QF.todo.f).length}; }).sort((a,b)=>b.upsell-a.upsell);
+  $('#staffTbl').innerHTML = `<thead><tr><th>พนักงาน</th><th class="r">รายชื่อ</th><th class="r">ค้างโทร</th><th class="r">ได้คุย</th><th class="r">ขายได้</th><th class="r">%ปิดการขาย</th><th class="r">%ปิดจากชื่อ</th><th class="r">ยอดขายเพิ่ม</th></tr></thead>
+  <tbody>${rows.map(r => `<tr><td>${esc(r.s)}</td><td class="r">${r.total}</td><td class="r">${r.left}</td><td class="r">${r.talked}</td><td class="r">${r.sold}</td><td class="r">${pct(r.sold,r.talked)}</td><td class="r">${pct(r.sold,r.total)}</td><td class="r">${baht(r.upsell)}</td></tr>`).join('')}</tbody>`;
+}
+document.querySelectorAll('#rangeSeg button').forEach(b => b.onclick = () => { ui.range=b.dataset.r; renderDash(); });
+
+/* ----- All leads ----- */
+function fillSelect(sel, label, opts){
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${label}</option>` + opts.map(([v,t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('');
+  sel.value = cur;
+}
+function filteredAll(){
+  const q = $('#aSearch').value.trim().toLowerCase(), st=$('#aStatus').value, sf=$('#aStaff').value, sr=$('#aSource').value;
+  return S.leads.filter(l => (!q || (l.name+l.phone+l.orderNo+l.note).toLowerCase().includes(q)) && (!st||l.status===st) && (!sf||l.assignee===sf) && (!sr||l.source===sr))
+    .sort((a,b)=>b.createdAt-a.createdAt);
+}
+function renderAll(){
+  fillSelect($('#aStatus'),'ทุกสถานะ',Object.entries(STATUS).map(([k,s])=>[k,s.label]));
+  fillSelect($('#aStaff'),'ทุกคน',[...S.staff,'ยังไม่แจก'].map(s=>[s,s]));
+  fillSelect($('#aSource'),'ทุกช่องทาง',SOURCES.map(s=>[s,s]));
+  const list = filteredAll();
+  const staffOpts = s => [...S.staff,'ยังไม่แจก'].map(x=>`<option ${x===s?'selected':''}>${esc(x)}</option>`).join('');
+  $('#allTbl').innerHTML = `<thead><tr><th>เข้ามา</th><th>ชื่อ</th><th>เบอร์</th><th>ช่องทาง</th><th>สินค้า</th><th>สถานะ</th><th class="r">ยอดอัพเซลล์</th><th>ผู้รับผิดชอบ</th><th>โน้ต</th></tr></thead>
+   <tbody>${list.slice(0,300).map(l => `<tr>
+    <td>${fmtTime(l.createdAt)}</td>
+    <td><button class="linkbtn" data-open="${l.id}">${esc(l.name)}</button></td>
+    <td>${fmtPhone(l.phone)}</td><td>${l.source} · ${l.origin}</td><td>${esc(l.product)}</td>
+    <td>${pill(l.status)}</td><td class="r">${l.upsell?baht(l.upsell):''}</td>
+    <td><select data-assign="${l.id}">${staffOpts(l.assignee)}</select></td>
+    <td>${esc(l.note)}</td></tr>`).join('')}</tbody>`;
+  $('#allTbl').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { ui.selected=b.dataset.open; ui.qFilter = QF.todo.f(S.leads.find(l=>l.id===b.dataset.open))?'todo':'done'; S.me='หัวหน้าทีม'; setView('queue'); });
+  $('#allTbl').querySelectorAll('[data-assign]').forEach(s => s.onchange = () => {
+    const l = S.leads.find(x=>x.id===s.dataset.assign); l.history.push({t:Date.now(), text:`แจกงานจาก ${l.assignee} ให้ ${s.value}`}); l.assignee = s.value; save(); toast(`แจก ${l.name} ให้ ${s.value} แล้ว`);
+  });
+}
+['#aSearch','#aStatus','#aStaff','#aSource'].forEach(s => $(s).addEventListener('input', renderAll));
+
+$('#csvBtn').onclick = () => {
+  const head = ['วันที่เข้า','ชื่อ','เบอร์','ช่องทาง','ประเภท','เลขออเดอร์','สินค้า','ยอดเดิม','สถานะ','ยอดอัพเซลล์','ผู้รับผิดชอบ','จำนวนครั้งที่โทร','โน้ต'];
+  const rows = filteredAll().map(l => [new Date(l.createdAt).toLocaleString('th-TH'),l.name,"'"+l.phone,l.source,l.origin,l.orderNo,l.product,l.orderAmt,STATUS[l.status].label,l.upsell,l.assignee,l.attempts,l.note]);
+  const csv = '\ufeff' + [head,...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'upsell-leads.csv'; a.click();
+};
+
+/* ----- Settings ----- */
+function renderSettings(){
+  $('#assignMode').value = S.assignMode;
+  $('#staffList').innerHTML = S.staff.map((s,i) => {
+    const open = S.leads.filter(l=>l.assignee===s && QF.todo.f(l)).length;
+    return `<div class="staff-row"><span>${esc(s)}</span><span class="hint">ค้างโทร ${open}</span><button class="linkbtn" data-rm="${i}">ลบ</button></div>`;}).join('');
+  $('#staffList').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+    const name = S.staff[+b.dataset.rm];
+    if (!confirm(`ลบ ${name}? รายชื่อที่ค้างอยู่จะกลายเป็น "ยังไม่แจก"`)) return;
+    S.staff.splice(+b.dataset.rm,1);
+    S.leads.forEach(l => { if (l.assignee===name && QF.todo.f(l)) l.assignee='ยังไม่แจก'; });
+    if (S.me===name) S.me='หัวหน้าทีม';
+    save(); render();
+  });
+}
+$('#assignMode').onchange = e => { S.assignMode = e.target.value; save(); toast('บันทึกวิธีแจกรายชื่อแล้ว'); };
+$('#addStaff').onclick = () => {
+  const v = $('#newStaff').value.trim(); if (!v || S.staff.includes(v)) return;
+  S.staff.push(v); $('#newStaff').value=''; save(); render(); toast(`เพิ่ม ${v} แล้ว`);
+};
+$('#resetBtn').onclick = () => { if (!confirm('ล้างข้อมูลทั้งหมดในเครื่องนี้?')) return; S = seedData(); ui.selected=null; save(); render(); toast('สร้างข้อมูลตัวอย่างใหม่แล้ว'); };
+
+render();
+</script>
+</body>
+</html>
