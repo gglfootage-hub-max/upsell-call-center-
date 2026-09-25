@@ -185,7 +185,23 @@ code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:13px;wo
 .who{font-size:14px;display:flex;align-items:center;gap:10px}
 .who button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:var(--radius-s);padding:4px 10px;font-size:13px}
 .btn[disabled]{opacity:.55;cursor:wait}
+/* Import */
+.imp{display:grid;gap:16px;max-width:1100px}
+.drop{border:2px dashed var(--line);border-radius:var(--radius-m);padding:28px;text-align:center;background:var(--paper);cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--navy);background:#E8EEF5}
+.drop strong{display:block;font-size:16px;margin-bottom:4px}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.map label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink-2)}
+.map select{border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;background:#fff}
+.req{color:var(--red)}
+.steps{margin:0;padding-left:20px;color:var(--ink-2)}
+.steps li{margin-bottom:4px}
+.result{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden}
+.result div{background:var(--surface);padding:12px 14px}
+.result .v{font-size:24px;font-weight:700}
+.result .l{font-size:13px;color:var(--ink-3)}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -195,6 +211,7 @@ code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:13px;wo
     <button class="tab" role="tab" data-view="queue" aria-selected="true">คิวโทรของฉัน</button>
     <button class="tab" role="tab" data-view="dash" aria-selected="false">สรุปผล</button>
     <button class="tab leader-only" role="tab" data-view="all" aria-selected="false">รายชื่อทั้งหมด</button>
+    <button class="tab leader-only" role="tab" data-view="import" aria-selected="false">นำเข้ารายชื่อ</button>
     <button class="tab" role="tab" data-view="settings" aria-selected="false">ตั้งค่า</button>
   </nav>
   <div class="who hidden" id="who"><span id="whoName"></span><button id="logoutBtn">ออกจากระบบ</button></div>
@@ -265,6 +282,42 @@ code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:13px;wo
     </div>
   </section>
 
+  <section id="view-import" class="hidden">
+    <div class="imp">
+      <div class="panel card">
+        <h3>นำเข้ารายชื่อจากไฟล์</h3>
+        <ol class="steps">
+          <li>ใน Pancake POS เข้าร้านที่ต้องการ แล้วไปที่รายการคำสั่งซื้อ</li>
+          <li>เลือกช่วงวันที่ แล้วกดส่งออกเป็นไฟล์ Excel</li>
+          <li>ลากไฟล์มาวางด้านล่าง ทำได้หลายไฟล์ ทีละไฟล์ ไฟล์ .xlsx .xls และ .csv ใช้ได้หมด</li>
+        </ol>
+        <p class="hint" style="margin:10px 0 14px">เบอร์ที่มีในระบบแล้วภายใน 30 วัน และเลขออเดอร์ที่เคยนำเข้าแล้ว จะถูกข้ามอัตโนมัติ นำเข้าไฟล์เดิมซ้ำได้ไม่มีปัญหา</p>
+        <label class="drop" id="drop">
+          <strong>ลากไฟล์มาวาง หรือกดเพื่อเลือกไฟล์</strong>
+          <span class="hint" id="fileName">ยังไม่ได้เลือกไฟล์</span>
+          <input type="file" id="fileIn" accept=".xlsx,.xls,.csv" hidden>
+        </label>
+      </div>
+
+      <div class="panel card hidden" id="mapCard">
+        <h3>จับคู่คอลัมน์</h3>
+        <p class="hint" style="margin:0 0 12px">ระบบเดาให้แล้ว ตรวจดูว่าถูกต้อง ช่องที่มี <span class="req">*</span> ต้องเลือก</p>
+        <div class="map" id="mapFields"></div>
+        <h3 style="margin-top:20px">ตัวอย่าง <span class="hint" id="previewCount"></span></h3>
+        <div class="tbl-wrap"><table id="previewTbl"></table></div>
+        <div class="actions" style="margin-bottom:0">
+          <button class="btn" id="impCancel">ยกเลิก</button>
+          <button class="btn primary" id="impGo">นำเข้า</button>
+        </div>
+      </div>
+
+      <div class="panel card hidden" id="resultCard">
+        <h3>ผลการนำเข้า</h3>
+        <div class="result" id="resultBox"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="view-settings" class="hidden">
     <div class="settings">
       <div class="panel card">
@@ -278,7 +331,7 @@ code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:13px;wo
       </div>
       <div class="panel card">
         <h3>การรับรายชื่อจาก Pancake</h3>
-        <p>รายชื่อใหม่เข้ามาอัตโนมัติผ่าน Webhook และถูกแจกให้คนที่มีงานค้างน้อยที่สุด เบอร์ที่ซ้ำภายใน 30 วันจะถูกข้าม หน้านี้โหลดรายชื่อใหม่เองทุก 1 นาที</p>
+        <p>รายชื่อเข้าได้ 2 ทาง คือหัวหน้าทีมนำเข้าจากไฟล์ Excel ในแท็บ "นำเข้ารายชื่อ" หรือเข้าอัตโนมัติผ่าน Webhook ทุกรายชื่อจะถูกแจกให้คนที่มีงานค้างน้อยที่สุด เบอร์ที่ซ้ำภายใน 30 วันจะถูกข้าม หน้านี้โหลดรายชื่อใหม่เองทุก 1 นาที</p>
       </div>
     </div>
   </section>
@@ -399,13 +452,13 @@ function startAutoRefresh(){
 function setView(v){
   ui.view = v;
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.view===v));
-  ['queue','dash','all','settings'].forEach(x => $('#view-'+x).classList.toggle('hidden', x!==v));
+  ['queue','dash','all','import','settings'].forEach(x => $('#view-'+x).classList.toggle('hidden', x!==v));
   render();
 }
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => setView(b.dataset.view));
 
 function render(){
-  $('#syncText').textContent = `เชื่อมต่อแล้ว · อัปเดตล่าสุด ${fmtTime(S.lastSync)} · รายชื่อใหม่จาก Pancake เข้าเองอัตโนมัติ`;
+  $('#syncText').textContent = `เชื่อมต่อแล้ว · อัปเดตล่าสุด ${fmtTime(S.lastSync)} · หน้านี้โหลดรายชื่อใหม่เองทุก 1 นาที`;
   if (ui.view==='queue') renderQueue();
   if (ui.view==='dash') renderDash();
   if (ui.view==='all') renderAll();
@@ -447,7 +500,7 @@ function renderQueue(){
       <span class="bar" style="background:${s.c}"></span>
       <span class="nm">${esc(l.name)}</span>
       <span class="when">${when}</span>
-      <span class="sub"><span class="src">${esc(l.source)}</span>${esc(l.product)}${isLeader()?' · '+esc(l.assignee):''}${l.attempts>1?` · โทรแล้ว ${l.attempts} ครั้ง`:''}</span>
+      <span class="sub"><span class="src">${esc(l.source)}</span>${l.page?esc(l.page)+' · ':''}${esc(l.product)}${isLeader()?' · '+esc(l.assignee):''}${l.attempts>1?` · โทรแล้ว ${l.attempts} ครั้ง`:''}</span>
     </li>`;}).join('')
     : `<li class="empty">${ui.qFilter==='todo' ? 'โทรครบทุกรายชื่อแล้ว รายชื่อใหม่จาก Pancake จะขึ้นที่นี่อัตโนมัติ' : 'ไม่มีรายชื่อในกลุ่มนี้'}</li>`;
   $('#qList').querySelectorAll('.qitem').forEach(li => {
@@ -485,6 +538,7 @@ function renderDetail(){
     </div>
     <dl class="info">
       <div><dt>ช่องทาง</dt><dd>${esc(l.source)} · ${esc(l.origin)}</dd></div>
+      ${l.page ? `<div><dt>ร้าน/เพจ</dt><dd>${esc(l.page)}</dd></div>` : ''}
       <div><dt>เลขออเดอร์</dt><dd>${esc(l.orderNo) || '–'}</dd></div>
       <div><dt>สินค้าที่ซื้อ</dt><dd>${esc(l.product) || '–'}</dd></div>
       <div><dt>ยอดออเดอร์เดิม</dt><dd>${l.orderAmt ? baht(l.orderAmt) : '–'}</dd></div>
@@ -637,6 +691,122 @@ $('#csvBtn').onclick = () => {
   const csv = '\ufeff' + [head,...rows].map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'upsell-leads.csv'; a.click();
 };
+
+/* ----- Import (หัวหน้า) ----- */
+const FIELDS = [
+  {k:'name',     label:'ชื่อลูกค้า',   req:true,  re:/ชื่อลูกค้า|ชื่อผู้รับ|ชื่อ-นามสกุล|ผู้รับ|ลูกค้า|customer|recipient|full.?name|tên/i, not:/สินค้า|product|เพจ|page|ร้าน/i},
+  {k:'phone',    label:'เบอร์โทร',    req:true,  re:/เบอร์|โทร|phone|mobile|tel|sđt|điện thoại/i},
+  {k:'orderNo',  label:'เลขออเดอร์',  req:false, re:/รหัสคำสั่ง|เลขที่คำสั่ง|รหัสออเดอร์|เลขออเดอร์|order.?id|order.?no|mã đơn|^id$|^รหัส$/i},
+  {k:'product',  label:'สินค้า',      req:false, re:/สินค้า|product|sản phẩm|item/i, not:/รหัส|จำนวน|ราคา|sku|code/i},
+  {k:'orderAmt', label:'ยอดเงิน / COD', req:false, re:/ยอดรวม|ยอดชำระ|ยอดเก็บ|รวมทั้งสิ้น|total|cod|tổng|ยอด/i},
+  {k:'paid',     label:'ยอดโอน (บวกรวมกับยอดเงิน)', req:false, re:/โอน|transfer|prepaid|chuyển khoản/i},
+  {k:'page',     label:'ร้าน/เพจ',    req:false, re:/เพจ|page|ร้าน|shop|fanpage/i},
+  {k:'source',   label:'ช่องทาง',     req:false, re:/ช่องทาง|แหล่ง|source|nguồn|platform/i}
+];
+let imp = { rows:[], head:[], map:{}, fixedSource:'FB' };
+
+function readFile(file){
+  if (!window.XLSX){ toast('โหลดตัวอ่านไฟล์ไม่สำเร็จ ลองรีเฟรชหน้า'); return; }
+  $('#fileName').textContent = 'กำลังอ่าน ' + file.name;
+  const fr = new FileReader();
+  fr.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', raw:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const all = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
+      const hi = all.findIndex(r => r.filter(c => String(c).trim()).length >= 3);
+      if (hi < 0) throw new Error('ไม่พบหัวตารางในไฟล์');
+      imp.head = all[hi].map((h,i) => String(h).trim() || `คอลัมน์ ${i+1}`);
+      imp.rows = all.slice(hi+1).filter(r => r.some(c => String(c).trim()));
+      guessMap();
+      $('#fileName').textContent = `${file.name} · ${imp.rows.length} แถว`;
+      $('#mapCard').classList.remove('hidden'); $('#resultCard').classList.add('hidden');
+      renderMap();
+    } catch(err){ $('#fileName').textContent = 'อ่านไฟล์ไม่ได้: ' + err.message; }
+  };
+  fr.readAsArrayBuffer(file);
+}
+function guessMap(){
+  imp.map = {}; const used = new Set();
+  ['phone','orderNo','name','orderAmt','paid','product','page','source'].forEach(k => {
+    const f = FIELDS.find(x => x.k===k);
+    const i = imp.head.findIndex((h,idx) => !used.has(idx) && f.re.test(h) && !(f.not && f.not.test(h)));
+    if (i >= 0){ imp.map[k] = i; used.add(i); }
+  });
+}
+function renderMap(){
+  const opts = sel => `<option value="">— ไม่ใช้ —</option>` + imp.head.map((h,i) => `<option value="${i}" ${sel===i?'selected':''}>${esc(h)}</option>`).join('');
+  $('#mapFields').innerHTML = FIELDS.map(f => `<label>${f.label}${f.req?' <span class="req">*</span>':''}<select data-k="${f.k}">${opts(imp.map[f.k])}</select></label>`).join('')
+    + `<label>ช่องทาง ถ้าไม่มีคอลัมน์<select id="fixedSrc">${SOURCES.map(s=>`<option ${s===imp.fixedSource?'selected':''}>${s}</option>`).join('')}</select></label>`;
+  $('#mapFields').querySelectorAll('select[data-k]').forEach(s => s.onchange = () => {
+    if (s.value==='') delete imp.map[s.dataset.k]; else imp.map[s.dataset.k] = +s.value;
+    renderPreview();
+  });
+  $('#fixedSrc').onchange = e => { imp.fixedSource = e.target.value; renderPreview(); };
+  renderPreview();
+}
+const validPhone = p => { let d = String(p||'').split(/[,;\/|]|\s{2,}|หรือ/)[0].replace(/\D/g,''); if (d.startsWith('66')&&d.length===11) d='0'+d.slice(2); if (d.length===9&&d[0]!=='0') d='0'+d; return /^0\d{8,9}$/.test(d); };
+function buildRows(){
+  const m = imp.map, get = (r,k) => m[k]===undefined ? '' : String(r[m[k]] ?? '').trim();
+  const num = v => Number(String(v).replace(/[^\d.]/g,''))||0;
+  const byOrder = new Map(), out = [];
+  let last = null;
+  const addProduct = (o, p) => { if (p && !o.product.includes(p)) o.product = o.product ? o.product+', '+p : p; };
+  imp.rows.forEach(r => {
+    const row = { name:get(r,'name'), phone:get(r,'phone'), orderNo:get(r,'orderNo'), product:get(r,'product'),
+      orderAmt: num(get(r,'orderAmt')) + num(get(r,'paid')), page:get(r,'page'), source:get(r,'source')||imp.fixedSource };
+    // แถวสินค้าเพิ่มเติมของออเดอร์ก่อนหน้า (ไม่มีเลขออเดอร์ เบอร์ และชื่อ)
+    if (!row.orderNo && !row.phone && !row.name){ if (last) addProduct(last, row.product); return; }
+    // ไฟล์ที่แยกแถวตามสินค้าแต่ใส่เลขออเดอร์ซ้ำทุกแถว
+    if (row.orderNo && byOrder.has(row.orderNo)){
+      const o = byOrder.get(row.orderNo);
+      addProduct(o, row.product);
+      o.orderAmt = Math.max(o.orderAmt, row.orderAmt);
+      if (!o.phone) o.phone = row.phone; if (!o.name) o.name = row.name;
+      last = o; return;
+    }
+    if (row.orderNo) byOrder.set(row.orderNo, row);
+    out.push(row); last = row;
+  });
+  return out;
+}
+function renderPreview(){
+  const ready = imp.map.name!==undefined && imp.map.phone!==undefined;
+  const rows = ready ? buildRows() : [];
+  const ok = rows.filter(r => validPhone(r.phone)).length;
+  $('#previewCount').textContent = ready ? `· ${rows.length} ออเดอร์ มีเบอร์ใช้ได้ ${ok} รายชื่อ` : '· เลือกคอลัมน์ชื่อลูกค้าและเบอร์โทรก่อน';
+  $('#previewTbl').innerHTML = ready ? `<thead><tr><th>ชื่อ</th><th>เบอร์</th><th>เลขออเดอร์</th><th>สินค้า</th><th class="r">ยอด</th><th>ร้าน/เพจ</th><th>ช่องทาง</th></tr></thead>
+    <tbody>${rows.slice(0,8).map(r => `<tr><td>${esc(r.name)}</td><td style="${validPhone(r.phone)?'':'color:var(--red)'}">${esc(r.phone)||'ไม่มีเบอร์'}</td><td>${esc(r.orderNo)}</td><td>${esc(r.product)}</td><td class="r">${r.orderAmt?baht(r.orderAmt):''}</td><td>${esc(r.page)}</td><td>${esc(r.source)}</td></tr>`).join('')}</tbody>` : '';
+  const b = $('#impGo'); b.disabled = !ok; b.textContent = ok ? `นำเข้า ${ok} รายชื่อ` : 'นำเข้า';
+}
+$('#impGo').onclick = async () => {
+  const rows = buildRows().filter(r => validPhone(r.phone));
+  if (!rows.length) return;
+  const b = $('#impGo'); b.disabled = true;
+  const total = {added:0, dupPhone:0, dupOrder:0, noPhone:0};
+  try {
+    for (let i=0; i<rows.length; i+=300){
+      b.textContent = `กำลังนำเข้า ${Math.min(i+300,rows.length)}/${rows.length}`;
+      const j = await api('import', {rows: rows.slice(i,i+300)});
+      Object.keys(total).forEach(k => total[k] += j.result[k]||0);
+    }
+    $('#resultBox').innerHTML = `
+      <div><div class="v" style="color:var(--green)">${total.added}</div><div class="l">เพิ่มเข้าคิวแล้ว</div></div>
+      <div><div class="v">${total.dupPhone}</div><div class="l">เบอร์ซ้ำใน 30 วัน (ข้าม)</div></div>
+      <div><div class="v">${total.dupOrder}</div><div class="l">ออเดอร์เคยนำเข้าแล้ว (ข้าม)</div></div>`;
+    $('#resultCard').classList.remove('hidden'); $('#mapCard').classList.add('hidden');
+    $('#fileName').textContent = 'นำเข้าเสร็จแล้ว เลือกไฟล์ถัดไปได้เลย';
+    toast(`นำเข้าแล้ว ${total.added} รายชื่อ`);
+    refresh(true);
+  } catch(e){ toast('นำเข้าไม่สำเร็จ: ' + e.message); }
+  b.disabled = false; renderPreview();
+};
+$('#impCancel').onclick = () => { imp = {rows:[],head:[],map:{},fixedSource:imp.fixedSource}; $('#mapCard').classList.add('hidden'); $('#fileName').textContent='ยังไม่ได้เลือกไฟล์'; $('#fileIn').value=''; };
+$('#fileIn').onchange = e => { if (e.target.files[0]) readFile(e.target.files[0]); };
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) readFile(f); });
 
 /* ---------- Start ---------- */
 (async () => {
